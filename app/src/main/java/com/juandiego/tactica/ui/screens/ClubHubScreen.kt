@@ -63,7 +63,7 @@ fun ClubHubScreen(
             .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 40.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AppLogo(onDark = false, modifier = Modifier.weight(1f))
+            AppLogo(onDark = false, size = 44.dp, modifier = Modifier.weight(1f))
             Chip("Salir", Slate200, Slate600, icon = Ic.logout, onClick = onLogout)
         }
         Spacer(Modifier.height(40.dp))

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo de Janua para usar dentro de la app (misma marca que el ícono) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:fillColor="#D1E7C4"
+        android:pathData="M48,0 L152,0 C178.5,0 200,21.5 200,48 L200,152 C200,178.5 178.5,200 152,200 L48,200 C21.5,200 0,178.5 0,152 L0,48 C0,21.5 21.5,0 48,0 Z" />
+    <group android:pivotX="100" android:pivotY="99" android:scaleX="1.12" android:scaleY="1.12">
+        <path
+            android:pathData="M100,30 L150,46 L150,94 C150,132 127,156 100,168 C73,156 50,132 50,94 L50,46 Z"
+            android:strokeColor="#3F6212"
+            android:strokeWidth="9"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#3F6212"
+            android:fillType="evenOdd"
+            android:pathData="M68,80 L100,72 L132,80 L142,104 L126,130 L112,146 L100,152 L88,146 L74,130 L58,104 Z M64,52 L86,80 L68,92 Z M136,52 L114,80 L132,92 Z M75,106 L92,112 L88,117 L78,113 Z M125,106 L108,112 L112,117 L122,113 Z M93,134 L107,134 L100,143 Z" />
+    </group>
+</vector>

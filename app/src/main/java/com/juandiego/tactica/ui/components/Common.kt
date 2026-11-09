@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -72,6 +73,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.juandiego.tactica.R
 import com.juandiego.tactica.data.EventType
 import com.juandiego.tactica.data.PaymentStatus
 import com.juandiego.tactica.data.SPANISH
@@ -227,11 +229,12 @@ fun Chip(text: String, bg: Color, fg: Color, modifier: Modifier = Modifier, icon
 @Composable
 fun AppLogo(onDark: Boolean, modifier: Modifier = Modifier, size: Dp = 40.dp, subtitle: String? = null) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(size).clip(R12).background(if (onDark) Lime300 else Slate950),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Ic.shield, null, Modifier.size(20.dp), tint = if (onDark) Slate950 else Lime300) }
-        Spacer(Modifier.width(8.dp))
+        Image(
+            painter = painterResource(R.drawable.ic_janua_logo),
+            contentDescription = "Logo de Janua",
+            modifier = Modifier.size(size),
+        )
+        Spacer(Modifier.width(10.dp))
         Column {
             Txt(
                 "Janua",

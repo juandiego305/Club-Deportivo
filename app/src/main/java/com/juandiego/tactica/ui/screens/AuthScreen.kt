@@ -78,7 +78,7 @@ fun AuthScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        AppLogo(onDark = true)
+        AppLogo(onDark = true, size = 52.dp)
         Spacer(Modifier.height(40.dp))
 
         Txt(
