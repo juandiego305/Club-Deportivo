@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+: pantalla de inicio verde con el lobo de Janua -->
+    <style name="Theme.Tactica" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FAFAF9</item>
+        <item name="android:windowSplashScreenBackground">@color/ic_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+    </style>
+</resources>

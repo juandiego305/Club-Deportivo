@@ -234,7 +234,7 @@ fun AppLogo(onDark: Boolean, modifier: Modifier = Modifier, size: Dp = 40.dp, su
         Spacer(Modifier.width(8.dp))
         Column {
             Txt(
-                "Táctica",
+                "Janua",
                 size = if (subtitle != null) 18.sp else 20.sp,
                 weight = FontWeight.ExtraBold,
                 color = if (onDark) White else Slate950,

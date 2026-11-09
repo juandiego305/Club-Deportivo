@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_bg">#020617</color>
+    <color name="ic_bg">#D1E7C4</color>
     <style name="Theme.Tactica" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#FAFAF9</item>
     </style>

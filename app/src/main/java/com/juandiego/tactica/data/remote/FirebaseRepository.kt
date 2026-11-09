@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.juandiego.tactica.data.LiveMatch
 import com.juandiego.tactica.data.Team
 import com.juandiego.tactica.data.User
 import kotlinx.coroutines.channels.awaitClose
@@ -90,6 +91,33 @@ class FirebaseRepository(
 
     fun deleteTeam(teamId: Long) {
         teamsRef().document(teamId.toString()).delete()
+        deleteLiveMatch(teamId)
+    }
+
+    // ─── Partido en vivo ────────────────────────────────────────────────────
+
+    private fun liveRef(): CollectionReference {
+        val uid = auth.currentUser?.uid ?: error("No hay sesión iniciada")
+        return db.collection("users").document(uid).collection("liveMatches")
+    }
+
+    /** Se llama en cada acción (gol, punto, pausa…), no cada segundo. */
+    fun saveLiveMatch(teamId: Long, match: LiveMatch) {
+        liveRef().document(teamId.toString()).set(match.toMap(System.currentTimeMillis()))
+    }
+
+    fun deleteLiveMatch(teamId: Long) {
+        liveRef().document(teamId.toString()).delete()
+    }
+
+    /** Partidos que estaban en curso al cerrar la app (por id de equipo). */
+    suspend fun loadLiveMatches(): Map<Long, LiveMatch> {
+        val now = System.currentTimeMillis()
+        return liveRef().get().await().documents.mapNotNull { doc ->
+            val id = doc.id.toLongOrNull() ?: return@mapNotNull null
+            val data = doc.data ?: return@mapNotNull null
+            id to liveMatchFromMap(data, now)
+        }.toMap()
     }
 
     private suspend fun <T> authCall(block: suspend () -> T): T = try {

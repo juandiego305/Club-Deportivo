@@ -1,4 +1,4 @@
-# Táctica — Gestión deportiva (Android)
+# Janua — Gestión deportiva (Android)
 
 App Android en **Kotlin + Jetpack Compose** construida a partir del mockup de Figma
 "Aplicación de gestión deportiva".
@@ -70,8 +70,10 @@ app/src/main/java/com/juandiego/tactica/
 - **Sesión:** Firebase la recuerda; al abrir la app entras directo hasta que toques *Salir*.
 - **Escudos:** se reducen a 256 px y se guardan en Base64 dentro del documento del equipo,
   así no hace falta Firebase Storage (que exige plan de pago).
-- El **partido en vivo** se lleva en memoria mientras se juega; al terminarlo, su resultado
-  queda guardado en el historial del equipo.
+- El **partido en vivo** se guarda en `users/{uid}/liveMatches/{teamId}` cada vez que se
+  registra una acción (no cada segundo). Si la app se cierra, al volver a abrirla el partido
+  sigue donde iba y el cronómetro se adelanta el tiempo que pasó. Al terminarlo, el resultado
+  queda en el historial del equipo.
 - Arquitectura: app Android (MVVM) como cliente + Firebase como backend en la nube (BaaS).
 - Reglas implementadas: fútbol con 11 titulares y 5 cambios; voleibol con 6 en cancha,
   6 cambios por set, sets a 25 (el 5.º a 15) con diferencia de 2, gana quien llega a 3 sets,

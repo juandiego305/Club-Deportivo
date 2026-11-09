@@ -20,6 +20,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontFamily
@@ -33,14 +34,18 @@ import com.juandiego.tactica.data.PaymentStatus
 import com.juandiego.tactica.data.Team
 import com.juandiego.tactica.data.formatClock
 import com.juandiego.tactica.data.paymentStatus
+import com.juandiego.tactica.data.todayIso
 import com.juandiego.tactica.ui.components.*
 import com.juandiego.tactica.ui.theme.*
 
 @Composable
 fun DashboardTab(team: Team, live: LiveMatch?, onGo: (AppTab) -> Unit) {
-    val next = team.events.firstOrNull()
+    val today = todayIso()
+    val upcomingEvents = team.events.filter { it.date >= today }.sortedWith(compareBy({ it.date }, { it.time }))
+    val next = upcomingEvents.firstOrNull()
     val available = team.players.count { it.available }
-    val wins = team.matches.count { it.ours > it.theirs }
+    val official = team.matches.filter { it.endReason == null || it.endReason == "Final reglamentario" }
+    val wins = official.count { it.ours > it.theirs }
     val statuses = team.players.map { paymentStatus(it.payments) }
     val overdue = statuses.count { it == PaymentStatus.VENCIDO }
     val upcoming = statuses.count { it == PaymentStatus.PROXIMO }
@@ -133,7 +138,7 @@ fun DashboardTab(team: Team, live: LiveMatch?, onGo: (AppTab) -> Unit) {
                 VerticalDivider(color = Slate200)
                 StatCell("$available/${team.players.size}", "Disponibles", Modifier.weight(1f))
                 VerticalDivider(color = Slate200)
-                StatCell("$wins/${team.matches.size}", "Victorias", Modifier.weight(1f))
+                StatCell("$wins/${official.size}", "Victorias", Modifier.weight(1f))
             }
         }
 
@@ -147,8 +152,8 @@ fun DashboardTab(team: Team, live: LiveMatch?, onGo: (AppTab) -> Unit) {
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                team.events.take(3).forEach { EventRow(it) }
-                if (team.events.isEmpty()) Empty("No tienes actividades programadas.")
+                upcomingEvents.take(3).forEach { EventRow(it) }
+                if (upcomingEvents.isEmpty()) Empty("No tienes actividades programadas.")
             }
         }
     }
@@ -168,9 +173,20 @@ fun AgendaTab(
             Modifier.fillMaxWidth().padding(bottom = 4.dp),
             bg = accent, fg = Slate950, icon = Ic.plus, vertical = 12.dp,
         )
-        team.events.forEach { event ->
+        val today = todayIso()
+        val (upcoming, past) = team.events.partition { it.date >= today }
+        upcoming.sortedWith(compareBy({ it.date }, { it.time })).forEach { event ->
             EventRow(event, onClick = { onEdit(event.id) }, onDelete = { onDelete(event.id) })
         }
         if (team.events.isEmpty()) Empty("Crea un entrenamiento o partido para comenzar.")
+        if (past.isNotEmpty()) {
+            Txt("PASADAS", Modifier.padding(top = 12.dp), size = 12.sp, weight = FontWeight.Bold, color = Slate400, letterSpacing = 1.5.sp)
+            past.sortedWith(compareByDescending<com.juandiego.tactica.data.TeamEvent> { it.date }.thenByDescending { it.time })
+                .forEach { event ->
+                    Box(Modifier.alpha(0.6f)) {
+                        EventRow(event, onClick = { onEdit(event.id) }, onDelete = { onDelete(event.id) })
+                    }
+                }
+        }
     }
 }

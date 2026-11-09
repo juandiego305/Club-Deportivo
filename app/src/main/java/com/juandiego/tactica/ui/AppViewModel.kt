@@ -1,5 +1,6 @@
 package com.juandiego.tactica.ui
 
+import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -69,13 +70,19 @@ class AppViewModel(
         // Firebase recuerda la sesión: si ya había un usuario, entra directo.
         repo.currentUser()?.let { startSession(it) }
 
-        // Cronómetro de los partidos en vivo.
+        // Cronómetro de los partidos en vivo. Se basa en el reloj real, así no se
+        // atrasa aunque el celular entre en reposo o la app quede en segundo plano.
         viewModelScope.launch {
+            var last = SystemClock.elapsedRealtime()
             while (true) {
                 delay(1000)
+                val now = SystemClock.elapsedRealtime()
+                val seconds = ((now - last) / 1000).toInt()
+                if (seconds <= 0) continue
+                last += seconds * 1000L
                 if (liveMatches.values.any { it.status == MatchStatus.LIVE }) {
                     liveMatches = liveMatches.mapValues { (_, m) ->
-                        if (m.status == MatchStatus.LIVE) m.copy(elapsed = m.elapsed + 1) else m
+                        if (m.status == MatchStatus.LIVE) m.copy(elapsed = m.elapsed + seconds) else m
                     }
                 }
             }
@@ -132,7 +139,14 @@ class AppViewModel(
         teamId = null
         inTeam = false
         teams = emptyList()
+        liveMatches = emptyMap()
         listenTeams()
+        // Recupera los partidos que quedaron en curso (con el cronómetro al día).
+        viewModelScope.launch {
+            runCatching { repo.loadLiveMatches() }.onSuccess { restored ->
+                liveMatches = restored + liveMatches
+            }
+        }
     }
 
     /** Escucha los equipos en la nube; si falla, muestra el error (ver [retryTeams]). */
@@ -289,14 +303,18 @@ class AppViewModel(
     fun createMatch(opponent: String) {
         val t = team ?: return
         val lineup = t.players.filter { it.available }.take(lineupLimit(t.sport)).map { it.id }
-        liveMatches = liveMatches + (t.id to LiveMatch(opponent = opponent, sport = t.sport, lineup = lineup))
+        val match = LiveMatch(opponent = opponent, sport = t.sport, lineup = lineup)
+        liveMatches = liveMatches + (t.id to match)
+        repo.saveLiveMatch(t.id, match)
     }
 
+    /** Aplica una acción al partido y la guarda en la nube. */
     fun updateMatch(change: (LiveMatch) -> LiveMatch) {
         val id = teamId ?: return
         val current = liveMatches[id] ?: return
         liveMatches = liveMatches + (id to change(current))
         saveIfEnded()
+        liveMatches[id]?.let { repo.saveLiveMatch(id, it) }
     }
 
     fun finishMatch(reason: String) = updateMatch { it.copy(status = MatchStatus.ENDED, endReason = reason) }
@@ -304,6 +322,7 @@ class AppViewModel(
     fun resetMatch() {
         val id = teamId ?: return
         liveMatches = liveMatches - id
+        repo.deleteLiveMatch(id)
     }
 
     /** Al terminar un partido, guarda su resultado en el historial y abre Estadísticas. */
