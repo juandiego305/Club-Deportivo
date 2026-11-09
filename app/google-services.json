@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "454226395586",
+    "project_id": "tactica-2ced6",
+    "storage_bucket": "tactica-2ced6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454226395586:android:96a0771de70cf7edd5565b",
+        "android_client_info": {
+          "package_name": "com.juandiego.tactica"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAE1mb9i3P2VH97pp-BATyWTnJRqmI7Wq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
