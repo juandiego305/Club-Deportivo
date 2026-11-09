@@ -45,7 +45,7 @@ import com.juandiego.tactica.ui.AppViewModel
 import com.juandiego.tactica.ui.components.*
 import com.juandiego.tactica.ui.theme.*
 
-private enum class TeamModal { EVENT, PLAYER, EDIT_TEAM, PAYMENT }
+private enum class TeamModal { EVENT, EDIT_EVENT, PLAYER, EDIT_PLAYER, EDIT_TEAM, PAYMENT }
 
 private fun AppTab.icon(): ImageVector = when (this) {
     AppTab.INICIO -> Ic.home
@@ -59,6 +59,7 @@ private fun AppTab.icon(): ImageVector = when (this) {
 fun TeamScreen(vm: AppViewModel, user: User, team: Team) {
     var modal by remember { mutableStateOf<TeamModal?>(null) }
     var paymentPlayerId by remember { mutableStateOf<Long?>(null) }
+    var editingId by remember { mutableStateOf<Long?>(null) }
     val tab = vm.tab
     val accent = team.sport.accent
     val live = vm.liveMatches[team.id]
@@ -132,12 +133,18 @@ fun TeamScreen(vm: AppViewModel, user: User, team: Team) {
                             onFinish = vm::finishMatch,
                             onReset = vm::resetMatch,
                         )
-                        AppTab.AGENDA -> AgendaTab(team, accent, onAdd = { modal = TeamModal.EVENT }, onDelete = vm::deleteEvent)
+                        AppTab.AGENDA -> AgendaTab(
+                            team, accent,
+                            onAdd = { modal = TeamModal.EVENT },
+                            onEdit = { editingId = it; modal = TeamModal.EDIT_EVENT },
+                            onDelete = vm::deleteEvent,
+                        )
                         AppTab.EQUIPO -> PlayersTab(
                             team = team,
                             accent = accent,
                             onAdd = { modal = TeamModal.PLAYER },
                             onPay = { paymentPlayerId = it; modal = TeamModal.PAYMENT },
+                            onEdit = { editingId = it; modal = TeamModal.EDIT_PLAYER },
                             onToggle = vm::toggleAvailable,
                             onDelete = vm::deletePlayer,
                         )
@@ -157,21 +164,60 @@ fun TeamScreen(vm: AppViewModel, user: User, team: Team) {
             },
             onClose = { modal = null },
         )
+        TeamModal.EDIT_EVENT -> {
+            val event = team.events.find { it.id == editingId }
+            if (event != null) {
+                EventFormSheet(
+                    accent = accent,
+                    initial = event,
+                    onSubmit = { type, title, date, time, location ->
+                        vm.editEvent(event.id, type, title, date, time, location)
+                        modal = null
+                    },
+                    onClose = { modal = null },
+                    onDelete = {
+                        vm.deleteEvent(event.id)
+                        modal = null
+                    },
+                )
+            }
+        }
         TeamModal.PLAYER -> PlayerFormSheet(
             sport = team.sport,
             accent = accent,
+            takenNumbers = team.players.map { it.number }.toSet(),
             onSubmit = { name, number, position ->
                 vm.addPlayer(name, number, position)
                 modal = null
             },
             onClose = { modal = null },
         )
+        TeamModal.EDIT_PLAYER -> {
+            val player = team.players.find { it.id == editingId }
+            if (player != null) {
+                PlayerFormSheet(
+                    sport = team.sport,
+                    accent = accent,
+                    initial = player,
+                    takenNumbers = team.players.filter { it.id != player.id }.map { it.number }.toSet(),
+                    onSubmit = { name, number, position ->
+                        vm.editPlayer(player.id, name, number, position)
+                        modal = null
+                    },
+                    onClose = { modal = null },
+                    onDelete = {
+                        vm.deletePlayer(player.id)
+                        modal = null
+                    },
+                )
+            }
+        }
         TeamModal.EDIT_TEAM -> TeamFormSheet(
             title = "Editar equipo",
             initial = team,
             submitLabel = "Guardar cambios",
-            onSubmit = { name, _, category, logo ->
-                vm.editTeam(name, category, logo)
+            onSubmit = { input ->
+                vm.editTeam(input)
                 modal = null
             },
             onClose = { modal = null },

@@ -29,6 +29,8 @@ fun TacticaApp(vm: AppViewModel = viewModel()) {
         user == null -> AuthScreen(
             loading = vm.authLoading,
             serverError = vm.authError,
+            info = vm.authInfo,
+            onResetPassword = vm::resetPassword,
             onLogin = vm::login,
             onRegister = vm::register,
             onClearError = vm::clearAuthError,
@@ -37,6 +39,8 @@ fun TacticaApp(vm: AppViewModel = viewModel()) {
             user = user,
             teams = vm.teams,
             loading = vm.loadingTeams,
+            error = vm.teamsError,
+            onRetry = vm::retryTeams,
             onEnter = vm::enterTeam,
             onCreate = vm::createTeam,
             onLogout = vm::logout,

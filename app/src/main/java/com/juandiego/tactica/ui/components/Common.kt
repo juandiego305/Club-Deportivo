@@ -346,10 +346,17 @@ fun StatTile(value: String, label: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun EventRow(event: TeamEvent, onDelete: (() -> Unit)? = null) {
+fun EventRow(event: TeamEvent, onClick: (() -> Unit)? = null, onDelete: (() -> Unit)? = null) {
     val date = runCatching { LocalDate.parse(event.date) }.getOrNull()
     val month = date?.format(DateTimeFormatter.ofPattern("MMM", SPANISH))?.replace(".", "")?.uppercase().orEmpty()
-    Row(Modifier.fillMaxWidth().card().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .card()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Box(
             Modifier.size(48.dp).clip(R12).background(if (event.type == EventType.PARTIDO) Lime100 else Slate100),
             contentAlignment = Alignment.Center,

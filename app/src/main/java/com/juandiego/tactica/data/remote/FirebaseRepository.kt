@@ -51,6 +51,12 @@ class FirebaseRepository(
         currentUser() ?: throw AuthException("No se pudo iniciar sesión.")
     }
 
+    /** Envía el correo de Firebase para restablecer la contraseña. */
+    suspend fun sendPasswordReset(email: String): Unit = authCall {
+        auth.sendPasswordResetEmail(email).await()
+        Unit
+    }
+
     fun logout() = auth.signOut()
 
     // ─── Equipos ────────────────────────────────────────────────────────────
@@ -62,7 +68,11 @@ class FirebaseRepository(
 
     /** Escucha en tiempo real los equipos del usuario. */
     fun observeTeams(): Flow<List<Team>> = callbackFlow {
-        val registration = teamsRef().addSnapshotListener { snapshot, _ ->
+        val registration = teamsRef().addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error) // el ViewModel muestra el error y permite reintentar
+                return@addSnapshotListener
+            }
             if (snapshot != null) {
                 trySend(snapshot.documents.mapNotNull { doc -> doc.data?.let(::teamFromMap) }.sortedBy { it.id })
             }

@@ -35,7 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.juandiego.tactica.data.DEFAULT_ENROLLMENT
+import com.juandiego.tactica.data.DEFAULT_MONTHLY
 import com.juandiego.tactica.data.EventType
+import com.juandiego.tactica.data.Player
+import com.juandiego.tactica.data.TeamEvent
+import com.juandiego.tactica.data.TeamInput
+import com.juandiego.tactica.data.money
 import com.juandiego.tactica.data.Sport
 import com.juandiego.tactica.data.Team
 import com.juandiego.tactica.ui.components.*
@@ -50,11 +56,12 @@ fun TeamFormSheet(
     title: String,
     initial: Team?,
     submitLabel: String,
-    onSubmit: (name: String, sport: Sport, category: String, logo: String?) -> Unit,
+    onSubmit: (TeamInput) -> Unit,
     onClose: () -> Unit,
     onDelete: (() -> Unit)? = null,
 ) {
-    var confirmDelete by remember { mutableStateOf(false) }
+    var enrollment by remember { mutableStateOf((initial?.enrollmentFee ?: DEFAULT_ENROLLMENT).toString()) }
+    var monthly by remember { mutableStateOf((initial?.monthlyFee ?: DEFAULT_MONTHLY).toString()) }
     val context = LocalContext.current
     var logo by remember { mutableStateOf(initial?.logo) }
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
@@ -139,24 +146,30 @@ fun TeamFormSheet(
         }
         Field("Nombre del equipo", name, { name = it }, placeholder = "Ej. Atlético Norte")
         Field("Categoría", category, { category = it }, placeholder = "Ej. Juvenil femenino")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            MoneyField("Matrícula", enrollment, { enrollment = it }, Modifier.weight(1f))
+            MoneyField("Mensualidad", monthly, { monthly = it }, Modifier.weight(1f))
+        }
+        if (initial != null) {
+            Notice(
+                "Si cambias la mensualidad, aplica a toda la plantilla. Una nueva matrícula solo aplica a quienes aún no la han pagado.",
+                Slate100,
+                Slate600,
+            )
+        }
+        val enrollmentValue = enrollment.toIntOrNull() ?: 0
+        val monthlyValue = monthly.toIntOrNull() ?: 0
         AppButton(
             submitLabel,
-            onClick = { onSubmit(name.trim(), sport, category.trim(), logo) },
+            onClick = {
+                onSubmit(TeamInput(name.trim(), sport, category.trim(), logo, enrollmentValue, monthlyValue))
+            },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             bg = Lime300,
             fg = Slate950,
-            enabled = name.isNotBlank() && category.isNotBlank(),
+            enabled = name.isNotBlank() && category.isNotBlank() && enrollmentValue > 0 && monthlyValue > 0,
         )
-        if (onDelete != null) {
-            AppButton(
-                if (confirmDelete) "Toca otra vez para eliminar definitivamente" else "Eliminar equipo",
-                onClick = { if (confirmDelete) onDelete() else confirmDelete = true },
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                bg = Rose50,
-                fg = Rose700,
-                size = 13.sp,
-            )
-        }
+        if (onDelete != null) DeleteButton("Eliminar equipo", onDelete)
     }
 }
 
@@ -165,15 +178,17 @@ fun EventFormSheet(
     accent: Color,
     onSubmit: (EventType, String, String, String, String) -> Unit,
     onClose: () -> Unit,
+    initial: TeamEvent? = null,
+    onDelete: (() -> Unit)? = null,
 ) {
-    var type by remember { mutableStateOf(EventType.ENTRENAMIENTO) }
-    var title by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf(initial?.type ?: EventType.ENTRENAMIENTO) }
+    var title by remember { mutableStateOf(initial?.title.orEmpty()) }
+    var date by remember { mutableStateOf(initial?.date.orEmpty()) }
+    var time by remember { mutableStateOf(initial?.time.orEmpty()) }
+    var location by remember { mutableStateOf(initial?.location.orEmpty()) }
     val valid = title.isNotBlank() && date.isNotBlank() && time.isNotBlank() && location.isNotBlank()
 
-    Sheet("Nueva actividad", onClose) {
+    Sheet(if (initial == null) "Nueva actividad" else "Editar actividad", onClose) {
         SelectField("Tipo", EventType.entries.map { it.label }, type.label, { label ->
             type = EventType.entries.first { it.label == label }
         })
@@ -184,13 +199,14 @@ fun EventFormSheet(
         }
         Field("Lugar", location, { location = it }, placeholder = "Campo o pabellón")
         AppButton(
-            "Guardar actividad",
+            if (initial == null) "Guardar actividad" else "Guardar cambios",
             onClick = { onSubmit(type, title.trim(), date, time, location.trim()) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             bg = accent,
             fg = Slate950,
             enabled = valid,
         )
+        if (onDelete != null) DeleteButton("Eliminar actividad", onDelete)
     }
 }
 
@@ -200,13 +216,18 @@ fun PlayerFormSheet(
     accent: Color,
     onSubmit: (String, Int, String) -> Unit,
     onClose: () -> Unit,
+    takenNumbers: Set<Int> = emptySet(),
+    initial: Player? = null,
+    onDelete: (() -> Unit)? = null,
 ) {
-    var name by remember { mutableStateOf("") }
-    var number by remember { mutableStateOf("") }
-    var position by remember { mutableStateOf("") }
-    val valid = name.isNotBlank() && number.toIntOrNull() != null && position.isNotBlank()
+    var name by remember { mutableStateOf(initial?.name.orEmpty()) }
+    var number by remember { mutableStateOf(initial?.number?.toString().orEmpty()) }
+    var position by remember { mutableStateOf(initial?.position.orEmpty()) }
+    val numberValue = number.toIntOrNull()
+    val duplicated = numberValue != null && numberValue in takenNumbers
+    val valid = name.isNotBlank() && numberValue != null && !duplicated && position.isNotBlank()
 
-    Sheet("Añadir jugador", onClose) {
+    Sheet(if (initial == null) "Añadir jugador" else "Editar jugador", onClose) {
         Field("Nombre completo", name, { name = it }, placeholder = "Nombre del jugador")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Field(
@@ -218,13 +239,43 @@ fun PlayerFormSheet(
                 Modifier.weight(1f), placeholder = if (sport == Sport.FUTBOL) "Delantero" else "Colocadora",
             )
         }
+        if (duplicated) Notice("El dorsal $number ya lo tiene otro jugador del equipo.", Rose50, Rose700)
         AppButton(
-            "Añadir a la plantilla",
-            onClick = { onSubmit(name.trim(), number.toInt(), position.trim()) },
+            if (initial == null) "Añadir a la plantilla" else "Guardar cambios",
+            onClick = { if (numberValue != null) onSubmit(name.trim(), numberValue, position.trim()) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             bg = accent,
             fg = Slate950,
             enabled = valid,
         )
+        if (onDelete != null) DeleteButton("Eliminar jugador", onDelete)
     }
+}
+
+/** Campo para valores en pesos: solo dígitos y muestra el valor formateado. */
+@Composable
+private fun MoneyField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier) {
+    val formatted = value.toIntOrNull()?.let { money(it) } ?: "\$0"
+    Field(
+        "$label ($formatted)",
+        value,
+        { onChange(it.filter(Char::isDigit).take(9)) },
+        modifier,
+        placeholder = "60000",
+        keyboardType = KeyboardType.Number,
+    )
+}
+
+/** Botón rojo que pide un segundo toque para confirmar. */
+@Composable
+private fun DeleteButton(label: String, onDelete: () -> Unit) {
+    var confirm by remember { mutableStateOf(false) }
+    AppButton(
+        if (confirm) "Toca otra vez para confirmar" else label,
+        onClick = { if (confirm) onDelete() else confirm = true },
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        bg = Rose50,
+        fg = Rose700,
+        size = 13.sp,
+    )
 }

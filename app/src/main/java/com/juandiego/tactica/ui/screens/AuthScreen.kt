@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -35,6 +36,8 @@ import com.juandiego.tactica.ui.theme.*
 fun AuthScreen(
     loading: Boolean,
     serverError: String?,
+    info: String?,
+    onResetPassword: (email: String) -> Unit,
     onLogin: (email: String, password: String) -> Unit,
     onRegister: (name: String, email: String, password: String) -> Unit,
     onClearError: () -> Unit,
@@ -56,6 +59,16 @@ fun AuthScreen(
         else onLogin(cleanEmail, password)
     }
 
+    fun forgotPassword() {
+        val cleanEmail = email.trim().lowercase()
+        if (!Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            error = "Escribe tu correo arriba y vuelve a tocar \"¿Olvidaste tu contraseña?\"."
+            return
+        }
+        error = ""
+        onResetPassword(cleanEmail)
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -69,7 +82,7 @@ fun AuthScreen(
         Spacer(Modifier.height(40.dp))
 
         Txt(
-            "GESTIÓN DEPORTIVA SIMPLE",
+            "GESTIÓN DEPORTIVA",
             Modifier
                 .border(1.dp, White15, CircleShape)
                 .padding(horizontal = 12.dp, vertical = 4.dp),
@@ -105,8 +118,23 @@ fun AuthScreen(
             if (register) Field("Tu nombre", name, { name = it }, placeholder = "Ej. Laura García")
             Field("Correo electrónico", email, { email = it }, placeholder = "tu@email.com", keyboardType = KeyboardType.Email)
             Field("Contraseña", password, { password = it }, placeholder = "Mínimo 6 caracteres", password = true)
+            if (!register) {
+                Txt(
+                    "¿Olvidaste tu contraseña?",
+                    Modifier
+                        .align(Alignment.End)
+                        .padding(bottom = 12.dp)
+                        .clip(R8)
+                        .clickable(enabled = !loading) { forgotPassword() }
+                        .padding(4.dp),
+                    size = 12.sp,
+                    weight = FontWeight.Bold,
+                    color = Slate600,
+                )
+            }
             val shownError = error.ifEmpty { serverError.orEmpty() }
             if (shownError.isNotEmpty()) Notice(shownError, Rose50, Rose700)
+            if (shownError.isEmpty() && !info.isNullOrEmpty()) Notice(info, Emerald50, Emerald700)
             AppButton(
                 when {
                     loading -> "Conectando…"

@@ -155,14 +155,22 @@ fun DashboardTab(team: Team, live: LiveMatch?, onGo: (AppTab) -> Unit) {
 }
 
 @Composable
-fun AgendaTab(team: Team, accent: androidx.compose.ui.graphics.Color, onAdd: () -> Unit, onDelete: (Long) -> Unit) {
+fun AgendaTab(
+    team: Team,
+    accent: androidx.compose.ui.graphics.Color,
+    onAdd: () -> Unit,
+    onEdit: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppButton(
             "Nueva actividad", onAdd,
             Modifier.fillMaxWidth().padding(bottom = 4.dp),
             bg = accent, fg = Slate950, icon = Ic.plus, vertical = 12.dp,
         )
-        team.events.forEach { event -> EventRow(event) { onDelete(event.id) } }
+        team.events.forEach { event ->
+            EventRow(event, onClick = { onEdit(event.id) }, onDelete = { onDelete(event.id) })
+        }
         if (team.events.isEmpty()) Empty("Crea un entrenamiento o partido para comenzar.")
     }
 }

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.juandiego.tactica.data.PaymentStatus
 import com.juandiego.tactica.data.Sport
 import com.juandiego.tactica.data.Team
+import com.juandiego.tactica.data.TeamInput
 import com.juandiego.tactica.data.User
 import com.juandiego.tactica.data.firstName
 import com.juandiego.tactica.data.paymentStatus
@@ -45,8 +46,10 @@ fun ClubHubScreen(
     user: User,
     teams: List<Team>,
     loading: Boolean,
+    error: String?,
+    onRetry: () -> Unit,
     onEnter: (Long) -> Unit,
-    onCreate: (String, Sport, String, String?) -> Unit,
+    onCreate: (TeamInput) -> Unit,
     onLogout: () -> Unit,
 ) {
     var showCreate by remember { mutableStateOf(false) }
@@ -78,7 +81,12 @@ fun ClubHubScreen(
         )
         Spacer(Modifier.height(32.dp))
 
-        if (loading) {
+        if (error != null) {
+            Column(Modifier.fillMaxWidth().card(R16, bg = Rose50, border = Rose200).padding(16.dp)) {
+                Txt(error, size = 14.sp, weight = FontWeight.SemiBold, color = Rose700, lineHeight = 20.sp)
+                AppButton("Reintentar", onRetry, Modifier.padding(top = 12.dp), vertical = 10.dp)
+            }
+        } else if (loading) {
             Box(Modifier.fillMaxWidth().padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Slate950)
             }
@@ -130,9 +138,9 @@ fun ClubHubScreen(
             title = "Crear equipo",
             initial = null,
             submitLabel = "Crear y entrar al equipo",
-            onSubmit = { name, sport, category, logo ->
+            onSubmit = { input ->
                 showCreate = false
-                onCreate(name, sport, category, logo)
+                onCreate(input)
             },
             onClose = { showCreate = false },
         )

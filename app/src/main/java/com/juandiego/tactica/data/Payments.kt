@@ -40,4 +40,5 @@ fun formatMonth(month: String): String =
 
 fun formatClock(totalSeconds: Int): String = "%02d:%02d".format(totalSeconds / 60, totalSeconds % 60)
 
-fun money(value: Int): String = "\$$value"
+/** Formato de pesos colombianos: 60000 -> "$60.000". */
+fun money(value: Int): String = "\$" + java.text.NumberFormat.getIntegerInstance(SPANISH).format(value)

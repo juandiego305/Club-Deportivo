@@ -44,6 +44,7 @@ fun PlayersTab(
     onPay: (Long) -> Unit,
     onToggle: (Long) -> Unit,
     onDelete: (Long) -> Unit,
+    onEdit: (Long) -> Unit,
 ) {
     val summary = team.players.groupingBy { paymentStatus(it.payments) }.eachCount()
     val overdue = summary[PaymentStatus.VENCIDO] ?: 0
@@ -112,6 +113,7 @@ fun PlayersTab(
                     onPay = { onPay(player.id) },
                     onToggle = { onToggle(player.id) },
                     onDelete = { onDelete(player.id) },
+                    onEdit = { onEdit(player.id) },
                 )
             }
             if (team.players.isEmpty()) Empty("Añade jugadores para crear tu plantilla.")
@@ -120,7 +122,14 @@ fun PlayersTab(
 }
 
 @Composable
-private fun PlayerCard(player: Player, accent: Color, onPay: () -> Unit, onToggle: () -> Unit, onDelete: () -> Unit) {
+private fun PlayerCard(
+    player: Player,
+    accent: Color,
+    onPay: () -> Unit,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+) {
     val status = paymentStatus(player.payments)
     val style = status.style()
     val debt = calcDebt(player.payments)
@@ -169,6 +178,10 @@ private fun PlayerCard(player: Player, accent: Color, onPay: () -> Unit, onToggl
                 color = if (player.available) Emerald700 else Slate500,
             )
             Spacer(Modifier.weight(1f))
+            Box(Modifier.clip(CircleShape).clickable(onClick = onEdit).padding(6.dp)) {
+                Icon(Ic.edit, "Editar jugador", Modifier.size(18.dp), tint = Slate400)
+            }
+            Spacer(Modifier.width(4.dp))
             Box(Modifier.clip(CircleShape).clickable(onClick = onDelete).padding(6.dp)) {
                 Icon(Ic.trash, "Eliminar jugador", Modifier.size(18.dp), tint = Slate300)
             }

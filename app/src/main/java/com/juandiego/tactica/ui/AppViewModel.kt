@@ -6,8 +6,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.juandiego.tactica.data.AppTab
-import com.juandiego.tactica.data.DEFAULT_ENROLLMENT
-import com.juandiego.tactica.data.DEFAULT_MONTHLY
 import com.juandiego.tactica.data.EventType
 import com.juandiego.tactica.data.IdGen
 import com.juandiego.tactica.data.LiveMatch
@@ -19,6 +17,7 @@ import com.juandiego.tactica.data.PlayerPayments
 import com.juandiego.tactica.data.Sport
 import com.juandiego.tactica.data.Team
 import com.juandiego.tactica.data.TeamEvent
+import com.juandiego.tactica.data.TeamInput
 import com.juandiego.tactica.data.User
 import com.juandiego.tactica.data.lineupLimit
 import com.juandiego.tactica.data.remote.AuthException
@@ -26,6 +25,7 @@ import com.juandiego.tactica.data.remote.FirebaseRepository
 import com.juandiego.tactica.data.todayIso
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 /**
@@ -51,8 +51,14 @@ class AppViewModel(
         private set
     var authLoading by mutableStateOf(false)
         private set
+    /** Mensaje informativo del login (p. ej. "te enviamos un correo"). */
+    var authInfo by mutableStateOf<String?>(null)
+        private set
     /** true hasta que se cargan los equipos de la sesión guardada. */
     var loadingTeams by mutableStateOf(false)
+        private set
+    /** Error al leer los equipos de la nube (se puede reintentar). */
+    var teamsError by mutableStateOf<String?>(null)
         private set
 
     private var teamsJob: Job? = null
@@ -85,12 +91,31 @@ class AppViewModel(
 
     fun clearAuthError() {
         authError = null
+        authInfo = null
+    }
+
+    fun resetPassword(email: String) {
+        if (authLoading) return
+        authLoading = true
+        authError = null
+        authInfo = null
+        viewModelScope.launch {
+            try {
+                repo.sendPasswordReset(email)
+                authInfo = "Te enviamos un correo a $email para restablecer tu contraseña. Revisa también la carpeta de spam."
+            } catch (e: AuthException) {
+                authError = e.message
+            } finally {
+                authLoading = false
+            }
+        }
     }
 
     private fun authAction(block: suspend () -> User) {
         if (authLoading) return
         authLoading = true
         authError = null
+        authInfo = null
         viewModelScope.launch {
             try {
                 startSession(block())
@@ -107,14 +132,30 @@ class AppViewModel(
         teamId = null
         inTeam = false
         teams = emptyList()
+        listenTeams()
+    }
+
+    /** Escucha los equipos en la nube; si falla, muestra el error (ver [retryTeams]). */
+    private fun listenTeams() {
         loadingTeams = true
+        teamsError = null
         teamsJob?.cancel()
         teamsJob = viewModelScope.launch {
-            repo.observeTeams().collect {
-                teams = it
-                loadingTeams = false
-            }
+            repo.observeTeams()
+                .catch {
+                    teamsError = "No pudimos cargar tus equipos. Revisa tu conexión e inténtalo de nuevo."
+                    loadingTeams = false
+                }
+                .collect {
+                    teams = it
+                    teamsError = null
+                    loadingTeams = false
+                }
         }
+    }
+
+    fun retryTeams() {
+        if (user != null) listenTeams()
     }
 
     fun logout() {
@@ -139,15 +180,37 @@ class AppViewModel(
         inTeam = false
     }
 
-    fun createTeam(name: String, sport: Sport, category: String, logo: String?) {
-        val team = Team(IdGen.next(), sport, name, category, logo)
+    fun createTeam(input: TeamInput) {
+        val team = Team(
+            id = IdGen.next(), sport = input.sport, name = input.name, category = input.category,
+            logo = input.logo, enrollmentFee = input.enrollmentFee, monthlyFee = input.monthlyFee,
+        )
         teams = teams + team
         repo.saveTeam(team)
         enterTeam(team.id)
     }
 
-    fun editTeam(name: String, category: String, logo: String?) =
-        updateTeam { it.copy(name = name, category = category, logo = logo) }
+    /**
+     * Edita el equipo. Si cambian los valores de pago, la nueva mensualidad aplica a
+     * todos los jugadores y la nueva matrícula a quienes aún no la han pagado.
+     */
+    fun editTeam(input: TeamInput) = updateTeam { t ->
+        t.copy(
+            name = input.name,
+            category = input.category,
+            logo = input.logo,
+            enrollmentFee = input.enrollmentFee,
+            monthlyFee = input.monthlyFee,
+            players = t.players.map { p ->
+                p.copy(
+                    payments = p.payments.copy(
+                        monthlyAmount = input.monthlyFee,
+                        enrollmentAmount = if (p.payments.enrollmentPaid) p.payments.enrollmentAmount else input.enrollmentFee,
+                    )
+                )
+            },
+        )
+    }
 
     /** Aplica el cambio en pantalla al instante y lo guarda en Firestore. */
     private fun updateTeam(change: (Team) -> Team) {
@@ -173,6 +236,13 @@ class AppViewModel(
             t.copy(events = (t.events + TeamEvent(IdGen.next(), type, title, date, time, location)).sortedBy { it.date })
         }
 
+    fun editEvent(id: Long, type: EventType, title: String, date: String, time: String, location: String) =
+        updateTeam { t ->
+            t.copy(events = t.events.map {
+                if (it.id == id) it.copy(type = type, title = title, date = date, time = time, location = location) else it
+            }.sortedBy { it.date })
+        }
+
     fun deleteEvent(id: Long) = updateTeam { t -> t.copy(events = t.events.filterNot { it.id == id }) }
 
     // ─── Plantilla y pagos ──────────────────────────────────────────────────
@@ -182,12 +252,15 @@ class AppViewModel(
             id = IdGen.next(), name = name, number = number, position = position, available = true,
             payments = PlayerPayments(
                 enrollmentPaid = false,
-                enrollmentAmount = DEFAULT_ENROLLMENT,
-                monthlyAmount = DEFAULT_MONTHLY,
+                enrollmentAmount = t.enrollmentFee,
+                monthlyAmount = t.monthlyFee,
             ),
         )
         t.copy(players = t.players + player)
     }
+
+    fun editPlayer(id: Long, name: String, number: Int, position: String) =
+        updatePlayer(id) { it.copy(name = name, number = number, position = position) }
 
     fun toggleAvailable(id: Long) = updatePlayer(id) { it.copy(available = !it.available) }
 

@@ -1,5 +1,7 @@
 package com.juandiego.tactica.data.remote
 
+import com.juandiego.tactica.data.DEFAULT_ENROLLMENT
+import com.juandiego.tactica.data.DEFAULT_MONTHLY
 import com.juandiego.tactica.data.EventType
 import com.juandiego.tactica.data.Match
 import com.juandiego.tactica.data.PaymentRecord
@@ -26,6 +28,8 @@ fun Team.toMap(): Map<String, Any?> = mapOf(
     "name" to name,
     "category" to category,
     "logo" to logo,
+    "enrollmentFee" to enrollmentFee,
+    "monthlyFee" to monthlyFee,
     "players" to players.map { it.toMap() },
     "events" to events.map { it.toMap() },
     "matches" to matches.map { it.toMap() },
@@ -64,6 +68,8 @@ fun teamFromMap(m: Map<String, Any?>): Team = Team(
     name = m.str("name").orEmpty(),
     category = m.str("category").orEmpty(),
     logo = m.str("logo"),
+    enrollmentFee = m.int("enrollmentFee").takeIf { it > 0 } ?: DEFAULT_ENROLLMENT,
+    monthlyFee = m.int("monthlyFee").takeIf { it > 0 } ?: DEFAULT_MONTHLY,
     players = m.maps("players").map(::playerFromMap),
     events = m.maps("events").map(::eventFromMap).sortedBy { it.date },
     matches = m.maps("matches").map(::matchFromMap),

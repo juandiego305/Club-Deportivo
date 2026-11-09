@@ -58,12 +58,24 @@ data class Team(
     val name: String,
     val category: String,
     val logo: String? = null, // escudo en Base64 (JPEG pequeño) para guardarlo en Firestore
+    val enrollmentFee: Int = DEFAULT_ENROLLMENT, // valor de la matrícula en COP
+    val monthlyFee: Int = DEFAULT_MONTHLY,       // valor de la mensualidad en COP
     val players: List<Player> = emptyList(),
     val events: List<TeamEvent> = emptyList(),
     val matches: List<Match> = emptyList(),
 )
 
 data class User(val name: String, val email: String)
+
+/** Datos del formulario de crear/editar equipo. */
+data class TeamInput(
+    val name: String,
+    val sport: Sport,
+    val category: String,
+    val logo: String?,
+    val enrollmentFee: Int,
+    val monthlyFee: Int,
+)
 
 enum class Side { OURS, THEIRS }
 
@@ -111,5 +123,6 @@ object IdGen {
 
 fun String.firstName(): String = trim().split(" ").firstOrNull().orEmpty()
 
-const val DEFAULT_ENROLLMENT = 100
-const val DEFAULT_MONTHLY = 60
+/** Valores por defecto en pesos colombianos; cada equipo puede cambiarlos. */
+const val DEFAULT_ENROLLMENT = 100_000
+const val DEFAULT_MONTHLY = 60_000
